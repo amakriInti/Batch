@@ -1,0 +1,10 @@
+D:\Inti\Batches\DemoBatch\Demo1\bin\Debug\Demo1.exe.config
+D:\Inti\Batches\DemoBatch\Demo1\bin\Debug\Demo1.exe
+D:\Inti\Batches\DemoBatch\Demo1\bin\Debug\Demo1.pdb
+D:\Inti\Batches\DemoBatch\Demo1\bin\Debug\Newtonsoft.Json.dll
+D:\Inti\Batches\DemoBatch\Demo1\bin\Debug\Newtonsoft.Json.xml
+D:\Inti\Batches\DemoBatch\Demo1\obj\Debug\Demo1.csprojAssemblyReference.cache
+D:\Inti\Batches\DemoBatch\Demo1\obj\Debug\Demo1.csproj.CoreCompileInputs.cache
+D:\Inti\Batches\DemoBatch\Demo1\obj\Debug\Demo1.csproj.CopyComplete
+D:\Inti\Batches\DemoBatch\Demo1\obj\Debug\Demo1.exe
+D:\Inti\Batches\DemoBatch\Demo1\obj\Debug\Demo1.pdb
