@@ -1,0 +1,5 @@
+D:\Inti\Batch\DemoBatch.Dto\bin\Debug\DemoBatch.Dto.dll
+D:\Inti\Batch\DemoBatch.Dto\bin\Debug\DemoBatch.Dto.pdb
+D:\Inti\Batch\DemoBatch.Dto\obj\Debug\DemoBatch.Dto.csproj.CoreCompileInputs.cache
+D:\Inti\Batch\DemoBatch.Dto\obj\Debug\DemoBatch.Dto.dll
+D:\Inti\Batch\DemoBatch.Dto\obj\Debug\DemoBatch.Dto.pdb
