@@ -1,4 +1,4 @@
-﻿using DemoBatch.Webapi.Models;
+﻿using DemoBatch.Dto;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,6 +36,19 @@ namespace DemoBatch.Webapi.Controllers
 
             var id = liste.Select(p => p.Id).Max() + 1;
             liste.Add(new Personne { Id = id, Nom = nom, Ville = ville });
+            return "Ok";
+        }
+        // Upload-Person -File "Administrateurs.csv"
+        public string Post(List<Personne> ps)
+        {
+            if (ps == null) return "Erreur";
+            var liste = (List<Personne>)System.Web.HttpContext.Current.Application["Personne"];
+            int id = liste.Select(p => p.Id).Max() + 1;
+            foreach (var p in ps)
+            {
+                liste.Add(new Personne { Id = id, Nom = p.Nom, Ville = p.Ville });
+                id++;
+            }
             return "Ok";
         }
         public string PostAutre(int id)
