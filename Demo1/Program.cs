@@ -1,8 +1,15 @@
-﻿using Newtonsoft.Json;
+﻿using DemoBatch.Dto;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Data.OleDb;
+using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.Net.Http.Formatting;
+using System.Net.Http.Headers;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -28,10 +35,86 @@ namespace Demo1
                     case "Update-Person": if (UpdatePerson()) MaConsole.Afficher("Ok"); else MaConsole.Afficher("Erreur"); break;
                     case "Insert-Person": if (InsertPerson()) MaConsole.Afficher("Ok"); else MaConsole.Afficher("Erreur"); break;
                     case "Delete-Person": if (DeletePerson()) MaConsole.Afficher("Ok"); else MaConsole.Afficher("Erreur"); break;
+                    case "Upload-Person": if (UploadPerson()) MaConsole.Afficher("Ok"); else MaConsole.Afficher("Erreur"); break;
                 }
             }
         }
+        private static List<Personne> LectureExcel()
+        {
+            string connectionString = $@"Provider=Microsoft.ACE.OLEDB.12.0;Data Source={MaConsole.File};Extended Properties=""Excel 8.0;HDR=YES""";
+            var connection = new OleDbConnection(connectionString);
+            string cmdText = "SELECT * FROM [Feuil1$]";
+            OleDbCommand command = new OleDbCommand(cmdText, connection);
 
+            command.Connection.Open();
+            OleDbDataReader reader = command.ExecuteReader();
+            List<Personne> ps = new List<Personne>();
+            if (reader.HasRows)
+            {
+                while (reader.Read())
+                {
+                    ps.Add(new Personne { Nom = reader["Nom"].ToString(), Ville = reader["Ville"].ToString() });
+                }
+            }
+            reader.Close();
+            return ps;
+        }
+        private static List<Personne> LectureCsv()
+        {
+            List<Personne> ps = new List<Personne>();
+
+            // Lecture du fichier csv -> ps
+            foreach (var ligne in File.ReadAllLines(MaConsole.File))
+            {
+                var tab = ligne.Split(';');
+                ps.Add(new Personne { Nom = tab[0], Ville = tab[1] });
+            }
+            return ps;
+        }
+        private static bool UploadPerson()
+        {
+            // Upload-Person -Mode "Excel" -File "Personnel.xslx"
+            if (string.IsNullOrEmpty(MaConsole.File)) return false;
+            if (!File.Exists(MaConsole.File)) return false;
+
+            List<Personne> ps = null;
+            if (string.IsNullOrEmpty(MaConsole.Mode)) MaConsole.Mode = MaConsole.DefaultMode;
+
+            if (MaConsole.Mode.ToUpper() == "EXCEL")
+                ps = LectureExcel();
+            else 
+                ps = LectureCsv();
+
+            using (var client = new HttpClient())
+            {
+                client.BaseAddress = new Uri("http://localhost:51092");
+                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                var content = new ObjectContent(typeof(List<Personne>), ps, new JsonMediaTypeFormatter());
+                var t = client.PostAsync("/api/personne", content).Result;
+            }
+            return true;
+
+            //// Todo : convert liste de personnes en byte[]
+            //byte[] psByte = ObjectToByteArray(ps);
+
+
+            //string url = $"http://localhost:51092/api/personne";
+            //WebClient1.Headers.Add("Content-Type", "application/json");
+            //var octets = WebClient1.UploadData(url, "POST", psByte);
+            //var s = Encoding.Default.GetString(octets);
+            //return s == @"""Ok""";
+        }
+        private static byte[] ObjectToByteArray(object obj)
+        {
+            if (obj == null)
+                return null;
+            BinaryFormatter bf = new BinaryFormatter();
+            using (MemoryStream ms = new MemoryStream())
+            {
+                bf.Serialize(ms, obj);
+                return ms.ToArray();
+            }
+        }
         private static bool UpdatePerson()
         {
             string url = $"http://localhost:51092/api/personne/?id={MaConsole.Id}&nom={MaConsole.Nom}&ville={MaConsole.Ville}";
@@ -86,9 +169,19 @@ namespace Demo1
         public int Id;
         public string Nom = null;
         public string Ville = null;
+        public string Mode = null;
+        public string File = null;
+        public string DefaultMode = null;
 
         public ConsoleColor Couleur1 = ConsoleColor.Gray, Couleur2 = ConsoleColor.Yellow;
-        private Regex Reg = new Regex(@"(?'command'^[A-Z][a-z,0-9]*-[A-Z][a-z,0-9]*)( (-Id) (?'id'\d+))?( (-Nom) ""?(?'nom'[\w,\s]+)""?)?( (-Ville) ""?(?'ville'[\w,\s]+)""?)?");
+        //private Regex Reg = new Regex(@"(?'command'^[A-Z][a-z,0-9]*-[A-Z][a-z,0-9]*)( (-Id) (?'id'\d+))?( (-Nom) ""?(?'nom'[\w,\s]+)""?)?( (-Ville) ""?(?'ville'[\w,\s]+)""?)?");
+        private Regex Reg = new Regex(
+                   @"(?'command'^[A-Z][a-z,0-9]*-[A-Z][a-z,0-9]*)" +
+                   @"( (-Id) (?'id'\d+))?" +
+                   @"( (-Nom) ""(?'nom'[\w,\s]+)"")?" +
+                   @"( (-Ville) ""(?'ville'[\w,\s]+)"")?" +
+                   @"( (-Mode) ""(?'mode'[\w,\s,\., :,\\]+)"")?" +
+                   @"( (-File) ""(?'file'[\w,\s,\., :,\\]+)"")?");
 
         public ConsoleApp()
         {
@@ -124,16 +217,10 @@ namespace Demo1
             LigneCommande = Console.ReadLine();
             var res = Reg.Match(LigneCommande);
 
-            //if(res.Groups.Count == 1)
-            //{
-            //    var reg2 = new Regex("(?'Command'^[A-Z][a-z,0-9]*-[A-Z][a-z,0-9]*)");
-            //    res = reg2.Match(LigneCommande);
-            //}
-            // Update-Person -Id 1 -Nom "Alex Le Grand" -Ville "Aix en Provence"
             for (int i = 1; i < res.Groups.Count; i++)
             {
                 var group = res.Groups[i];
-                if (! string.IsNullOrEmpty(group.Value))
+                if (!string.IsNullOrEmpty(group.Value))
                 {
                     switch (group.Name)
                     {
@@ -141,6 +228,8 @@ namespace Demo1
                         case "nom": Nom = group.Value; break;
                         case "ville": Ville = group.Value; break;
                         case "command": Commande = group.Value; break;
+                        case "mode": Mode = group.Value; break;
+                        case "file": File = group.Value; break;
                     }
                 }
             }
