@@ -1,0 +1,1 @@
+﻿Invoke-RestMethod -Method 'Get' -Uri "http://localhost:51092/api/personne" -OutFile output.csv
